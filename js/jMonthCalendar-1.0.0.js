@@ -14,12 +14,12 @@
 			head: "#CalendarHead",
 			body: "#CalendarBody"
 	};
+	var	_firstDayOfWeek = 0;
 	var _selectedDate;
 	var _beginDate;
 	var _endDate;
 	var calendarEvents;
 	var defaults = {
-			firstDayOfWeek: 0,
 			navLinks: {
 				p:'Prev', 
 				n:'Next', 
@@ -27,9 +27,7 @@
 			},
 			onMonthChanging: function(dateIn) { return true; },
 			onMonthChanged: function(dateIn) { return true; },
-			onEventBlockClick: function(event) { return true; },
-			onEventBlockOver: function(event) { alert("block over"); return true; },
-			onEventBlockOut: function(event) { alert("block out"); return true; },
+			onEventClick: function(event) { return true; },
 			locale: {
 				days: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
 				daysShort: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
@@ -155,16 +153,17 @@
 			return false;
 		});
 
+		
 		//Build up the Header first
 		//  Navigation
 		var navRow = jQuery('<tr><td colspan="7"><div class="FormHeader MonthNavigation"></div></td></tr>');
 		jQuery('.MonthNavigation', navRow).append(nextLink);
 		jQuery('.MonthNavigation', navRow).append(prevLink);
-		jQuery('.MonthNavigation', navRow).append(jQuery('<div class="MonthName"></div>').append(defaults.locale.months[d.getMonth()] + " " + d.getFullYear()));
+		jQuery('.MonthNavigation', navRow).append(jQuery('<div class="MonthName"></div></div>').append(defaults.locale.months[d.getMonth()] + " " + d.getFullYear()));
 		
 		//  Days
 		var headRow = jQuery("<tr></tr>");
-		for (var i=defaults.firstDayOfWeek; i<defaults.firstDayOfWeek+7; i++) {
+		for (var i=_firstDayOfWeek; i<_firstDayOfWeek+7; i++) {
 			var weekday = i%7;
 			var wordday = defaults.locale.days[weekday];
 			headRow.append('<th title="' + wordday + '" class="DateHeader' + (weekday == 0 || weekday == 6 ? ' Weekend' : '') + '"><span>' + wordday + '</span></th>');
@@ -181,7 +180,7 @@
 		
 		
 		//what is the currect day #
-		var curDay = defaults.firstDayOfWeek - d.getDay();
+		var curDay = _firstDayOfWeek - d.getDay();
 		if (curDay > 0) curDay -= 7
 		//alert(curDay);
 		
@@ -199,7 +198,7 @@
 	  		var thisRow = jQuery("<tr></tr>");
 				
 			for (var i=0; i<7; i++) {
-				var weekday = (defaults.firstDayOfWeek + i) % 7;
+				var weekday = (_firstDayOfWeek + i) % 7;
 				var atts = {'class':"DateBox" + (weekday == 0 || weekday == 6 ? ' Weekend ' : ''),
 							'date':_currentDate.toShortDateString(),
 							'id': getDateId(_currentDate)
@@ -239,21 +238,16 @@
 	}
 	
 	var DrawEventsOnCalendar = function() {	
-		if (calendarEvents && calendarEvents.length > 0) {
+		if (jQuery.isArray(calendarEvents)) {
 			jQuery.each(calendarEvents, function(){
 				//Get the events that are in the month displayed.
 				var ev = this;
 				if ((ev.Date >= _beginDate) && (ev.Date <= _endDate)) {
 					var cell = jQuery("#" + getDateId(ev.Date), jQuery(ids.container));
-					
-					var event = jQuery('<div class="Event"></div>');					
-					event.click(function() { defaults.onEventBlockClick(ev); });
-					event.mouseover(function() { defaults.onEventBlockOver(ev); });
-					event.mouseout(function() { defaults.onEventBlockOut(ev); });
-					
-					var link = jQuery('<a href="' + ev.URL + '">' + ev.Title + '</a>');
-					
-					event.append(link);
+					var event = jQuery('<div class="Event"></div>').append('<a href="' + ev.URL + '">' + ev.Title + '</a>');
+					event.click(function() {
+						defaults.onEventClick(ev);
+					});
 					event.hide();
 					cell.append(event);
 					event.fadeIn("normal");
@@ -269,8 +263,8 @@
 	
 	
 	jQuery.J.AddEvents = function(eventCollection) {
-		if(eventCollection) {
-			if(eventCollection.length > 1) {
+		if(eventCollection && jQuery.isArray(calendarEvents)) {
+			if(jQuery.isArray(eventCollection)) {
 				jQuery.each(eventCollection, function() {
 					calendarEvents.push(this);
 				});
