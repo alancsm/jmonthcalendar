@@ -1,0 +1,95 @@
+<?xml version="1.0"?>
+<project name="jMonthCalendar" default="jmonthcalendar" basedir=".">
+
+	<!-- SETUP -->
+	<loadfile property="version" srcfile="VERSION.txt" />
+	<property name="src.dir" value="src" />
+	<property name="src.js.dir" value="${src.dir}/js" />
+	<property name="src.css.dir" value="${src.dir}/css" />
+	<property name="lib.dir" value="lib" />
+	<property name="build.dir" value="build" />
+	
+	<property name="JAR" value="${lib.dir}/js.jar" />
+    <property name="YUICompressor" value="${lib.dir}/yuicompressor-2.4.2.jar" />
+	
+	<!-- File names for distribution -->
+	<property name="JMC" value="${build.dir}/jMonthCalendar.js" />
+	<property name="JMC_LITE" value="${build.dir}/jMonthCalendar.lite.js" />	
+	<property name="JMC_MIN" value="${build.dir}/jMonthCalendar.min.js" />
+	<property name="JMC_PACK" value="${build.dir}/jMonthCalendar.pack.js" />
+	
+
+	<!-- MAIN -->	
+	<target name="jmonthcalendar" description="Builds and concates source files to one." depends="init">
+		<echo message="Building ${JMC}" />
+		<concat destfile="${JMC}">
+			<fileset dir="${src.js.dir}" includes="jMonthCalendar.js" />
+		</concat>
+		<replaceregexp match="@VERSION" replace="${version}" flags="g" byline="true" file="${JMC}" />
+		<echo message="${JMC} built." />
+	</target>
+	
+	<target name="min" depends="jmonthcalendar" description="Remove all comments and whitespace, no compression, great in combination with GZip">
+        <echo message="Building ${JMC_MIN}" />
+		<apply executable="java" parallel="false" verbose="true" dest="${build.dir}">
+			<fileset dir="${build.dir}">
+				<include name="jMonthCalendar.js" />
+			</fileset>
+			<arg line="-jar" />
+			<arg path="${YUICompressor}" />
+			<arg value="--charset" />
+			<arg value="ANSI" />
+			<arg value="-o" />
+			<targetfile />
+			<mapper type="glob" from="jMonthCalendar.js" to="jMonthCalendar.min.js" />
+		</apply>
+        <echo message="${JMC_MIN} built." />
+    </target>
+	
+	<target name="pack" depends="jmonthcalendar" description="Remove all comments and whitespace and compress">
+        <echo message="Building ${JMC_PACK}" />
+        <java jar="${JAR}" fork="true">
+            <arg value="${lib.dir}/build/pack.js" />
+            <arg value="${JMC}" />
+            <arg value="${JMC_PACK}" />
+        </java>
+        <echo message="${JMC_PACK} built." />
+    </target>
+	
+	<target name="all" depends="clean,jmonthcalendar,min,pack">
+        <echo message="Build complete." />
+    </target>
+	
+	<target name="init">
+		<echo>Running Init</echo>
+		<mkdir dir="${build.dir}" />
+	</target>
+	
+	<target name="clean" description="Deletes the build directory">
+		<delete dir="${build.dir}" failonerror="false" />
+	</target>
+	
+	
+	<target name="release" depends="all">
+		<echo message="Building release ${version}." />
+		<property name="release.name" value="jMonthCalendar-${version}" />
+		<property name="release.folder" value="${build.dir}/${release.name}" />
+		
+		<mkdir dir="${release.folder}" />
+		<mkdir dir="${release.folder}/css" />
+		<mkdir dir="${release.folder}/js" />
+		
+		<copy todir="${release.folder}/css">
+			<fileset dir="${src.css.dir}" />
+		</copy>
+		
+		<copy todir="${release.folder}/js">
+			<fileset dir="${build.dir}" includes="*.js" />
+			<fileset dir="${src.js.dir}" excludes="jMonthCalendar.js" />
+		</copy>
+		
+		<copy file="doc/Demo.html" todir="${release.folder}" />
+		
+		<zip destfile="${build.dir}/${release.name}.zip" basedir="${release.folder}" />
+	</target>
+</project>
